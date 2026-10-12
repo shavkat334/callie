@@ -2,15 +2,15 @@ from django.shortcuts import get_object_or_404, redirect, render
 from .models import Author, Category, Post
 
 def index(request):
-    latest = list(Post.objects.all()[:12])
-    first_cat = Category.objects.first() 
+    latest_posts = list(Post.objects.select_related('category', 'author').order_by('-id')[:12])
+    categories = Category.objects.all()
     
     context = {
-        "hot_big": latest[0] if latest else None,
-        "hot_small": latest[1:3],
-        "recent": latest[:6],
-        "categories": Category.objects.all(),
-        "first_cat_pk": first_cat.pk if first_cat else None,
+        "hot_big": latest_posts[0] if latest_posts else None,
+        "hot_small": latest_posts[1:3],
+        "recent": latest_posts[:6],
+        "categories": categories,
+        "first_cat_pk": categories.first().pk if categories.exists() else None,
     }
     return render(request, "index.html", context)
 
@@ -32,11 +32,7 @@ def blog_post(request):
     return redirect("index")
 
 def author(request, pk=None):
-    if pk:
-        the_author = get_object_or_404(Author, pk=pk)
-    else:
-        the_author = Author.objects.first()
-        
+    the_author = get_object_or_404(Author, pk=pk) if pk else Author.objects.first()
     posts = Post.objects.filter(author=the_author) if the_author else []
     return render(request, "author.html", {"author": the_author, "posts": posts})
 
